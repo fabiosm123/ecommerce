@@ -40,7 +40,6 @@ class Page {
 			$this->tpl->assign($key, $value);
 		}		
 
-
 	}
 
 	public function setTpl($name, $data = array(), $returnHTML = false) {
