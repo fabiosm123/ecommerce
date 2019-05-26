@@ -10,6 +10,8 @@ class User extends Model {
 
 	const SESSION = "User";
 	const SECRET = "HcodePHP7_Secret";
+	const ERROR = "UserError";
+	const ERROR_REGISTER = "UserErrorRegister";
 
 	public static function getFromSession() {
 
@@ -65,12 +67,12 @@ class User extends Model {
 
 		$sql = new Sql();
 
-		$results = $sql->select("SELECT * FROM tb_users WHERE deslogin = :LOGIN", array(
+		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b ON a.idperson = b.idperson WHERE a.deslogin = :LOGIN", array(
 				":LOGIN"=>$login
 		));
 
 		if (count($results) === 0) {
-			throw new \Exception("Usuário inexistente ou senha inválida.", 1);
+			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
 
 		$data = $results[0];
@@ -78,6 +80,8 @@ class User extends Model {
 		if (password_verify($password, $data["despassword"]) === true) {
 
 			$user = new User();
+
+			$data['desperson'] = utf8_encode($data['desperson']);
 
 			$user->setData($data);
 
@@ -87,7 +91,7 @@ class User extends Model {
 
 		}
 		else {
-			throw new \Exception("Usuário inexistente ou senha inválida.", 1);
+			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
 
 	}
@@ -99,8 +103,7 @@ class User extends Model {
 			if ($inadmin) {
 				header("Location: /admin/login");
 			}
-			else
-			{
+			else {
 				header("Location: /login");
 			}
 			exit;
@@ -128,7 +131,7 @@ class User extends Model {
 		$sql = new Sql();
 
 		$results = $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
-			":desperson"=>$this->getdesperson(),
+			":desperson"=>utf8_decode($this->getdesperson()),
 			":deslogin"=>$this->getdeslogin(),
 			":despassword"=>$this->getdespassword(),
 			":desemail"=>$this->getdesemail(),
@@ -148,6 +151,10 @@ class User extends Model {
 		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = :iduser", array(
 			":iduser"=>$iduser
 		));
+
+		$data = $results[0];
+
+		$data['desperson'] = utf8_encode($data['desperson']);
 
 		$this->setData($results[0]);
 
@@ -180,66 +187,6 @@ class User extends Model {
 		));
 
 	}
-
-/*
-	public static function getForgot($email) {
-
-		$sql = new Sql();
-
-		$results = $sql->select("
-			SELECT *
-			FROM tb_persons a
-			INNER JOIN tb_users b USING(idperson)
-			WHERE a.desemail = :email", array(
-				":email"=>$email
-		));
-
-		if (count($results) === 0) {
-
-			throw new \Exception("Não foi possível recuperar a senha.");
-			
-		}
-		else {
-
-			$data = $results[0];
-
-			$results2 = $sql->select("CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
-				":iduser"=>$data["iduser"],
-				":desip"=>$_SERVER["REMOTE_ADDR"]
-			));
-
-			if (count($results2) === 0) {
-
-				throw new \Exception("Não foi possível recuperar a senha.");
-				
-			}
-			else {
-
-				$dataRecovery = $results2[0];
-
-	            $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-	            $code = openssl_encrypt($dataRecovery['idrecovery'], 'aes-256-cbc', User::SECRET, 0, $iv);
-	            $result = base64_encode($iv.$code);
-
-				// $code = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128, User::SECRET, $dataRecovery["idrecovery"], MCRYPT_MODE_ECB));
-
-				$link = "http://www.hcodecommerce.com.br/admin/forgot/reset?code=$result";
-
-				$mailer = new Mailer($data["desemail"], $data["desperson"], "Redefinir Senha da Hcode Store", "forgot", array(
-					"name"=>$data["desperson"], 
-					"link"=>$link
-				));
-
-				$mailer->send();
-
-				return $link;
-
-			}
-
-		}
-
-	}
-*/
 
  	public static function getForgot($email, $inadmin = true) {
 
@@ -357,6 +304,46 @@ class User extends Model {
 			":password"=>$password,
 			":iduser"=>$this->getiduser()
 		));
+
+	}
+
+	public static function setError($msg) {
+
+		$_SESSION[User::ERROR] = $msg;
+
+	}
+
+	public static function getError() {
+
+		$msg = (isset($_SESSION[User::ERROR])) && $_SESSION[User::ERROR] ? $_SESSION[User::ERROR] : "";
+
+		User::clearError();
+
+		return $msg;
+
+	}
+
+	public static function clearError() {
+
+		$_SESSION[User::ERROR] = NULL;
+
+	}
+
+	public static function setErrorRegister($msg) {
+
+		$_SESSION[User::ERROR_REGISTER] = $msg;
+
+	}
+
+	public static function checkLoginExist($login) {
+
+		$sql = new Sql();
+
+		$results = $sql->select("SELECT * FROM tb_users WHERE deslogin = :deslogin", [
+			':deslogin'=>$login
+		]);
+
+		return (count($results) > 0);
 
 	}
 
