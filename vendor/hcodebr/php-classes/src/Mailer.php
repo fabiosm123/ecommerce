@@ -39,7 +39,7 @@ class Mailer {
 		// 0 = off (for production use)
 		// 1 = client messages
 		// 2 = client and server messages
-		$this->mail->SMTPDebug = 0;
+		$this->mail->SMTPDebug = 2;
 
 		//Set the hostname of the mail server
 		$this->mail->Host = 'smtp.gmail.com';

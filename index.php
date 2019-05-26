@@ -122,6 +122,8 @@ $app->post("/admin/users/create", function() {
 
 	$_POST["inadmin"] = (isset($_POST["inadmin"]))?1:0;
 
+	$_POST['despassword'] = User::getPasswordHash($_POST["despassword"]);
+
 	$user->setData($_POST);
 
 	$user->save();
@@ -192,7 +194,7 @@ $app->get("/admin/forgot/reset", function() {
 
 	$page->setTpl("forgot-reset", array(
 		"name"=>$user["desperson"],
-		"code"=>$user["code"]
+		"code"=>$_GET["code"]
 	));
 
 });
@@ -216,7 +218,7 @@ $app->post("/admin/forgot/reset", function() {
 		"footer"=>false
 	]);
 
-	$page->setTpl("forgot-reset-sucess");
+	$page->setTpl("forgot-reset-success");
 
 });
 
@@ -303,6 +305,21 @@ $app->post("/admin/categories/:idcategory", function($idcategory) {
 
 	header("Location: /admin/categories");
 	exit;
+
+});
+
+$app->get("/categories/:idcategory", function($idcategory) {
+
+	$category = new Category();
+
+	$category->get((int)$idcategory);
+
+	$page = new Page();
+
+	$page->setTpl("category", [
+		'category'=>$category->getValues(),
+		'products'=>[]
+	]);
 
 });
 
